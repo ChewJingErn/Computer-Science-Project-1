@@ -6,7 +6,7 @@ screen_width, screen_height = 1280, 720
 real_width, real_height = 1333, 1055
 screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
-
+circlelist = []
 font = pygame.font.SysFont(None, 24)  
 running = True
 
@@ -77,6 +77,17 @@ class Circle:
         self.value = value
         self.size = size
         self.speed = speed
+    def is_prime(self):
+        if self.value <= 1:
+            return False
+        for i=2 to floor(sqrt(self.value)):
+            if self.value % i==0, 
+                return False
+        return True
+
+def collision_check(circlelist):
+    for circle in circlelist:
+        distance = 
         
 
 
