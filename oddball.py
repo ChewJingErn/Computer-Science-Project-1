@@ -71,7 +71,13 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
-
+class Circle:
+    def __init__(self, position, value, size, speed):
+        self.position = position
+        self.value = value
+        self.size = size
+        self.speed = speed
+        
 
 
 
