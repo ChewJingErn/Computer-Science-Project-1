@@ -77,6 +77,30 @@ class Circle:
         self.value = value
         self.size = size
         self.speed = speed
+    def move(self, target_x, target_y):
+        dx = target_x - self.x
+        dy = target_y - self.y
+
+        distance = (dx**2 + dy**2) ** 0.5
+
+        if distance > self.speed:
+            self.x += (dx / distance) * self.speed
+            self.y += (dy / distance) * self.speed
+        else:
+            self.x = target_x
+            self.y = target_y
+
+        self.x = max(self.size, min(real_width - self.size, self.x))
+        self.y = max(self.size, min(real_height - self.size, self.y))
+    def spawn(self):
+        minval = player.value - 10
+        maxval = player.value + 15
+        if minval < 1:
+            minval = 1
+        val = random.randint(minval,maxval)
+        self.size = val
+        self.value = val
+        pygame.draw.circle(WIN,(0,0,0),self.position, self.size)
     def is_prime(self):
         if self.value <= 1:
             return False
