@@ -108,10 +108,21 @@ class Circle:
             if self.value % i==0, 
                 return False
         return True
-
-def collision_check(circlelist):
-    for circle in circlelist:
-        distance = 
+class Game:
+    def __init__(self, player, circlelist, strikecount, screendisplay, time, winscore, mapwidth, mapheight):
+        self.player = player
+        self.circlelist = circlelist
+        self.strikecount = strikecount
+        self.screendisplay = screendisplay
+        self.time = time
+        self.winscore = winscore
+        self.mapwidth = mapwidth
+        self.mapheight = mapheight
+    def start(self):
+        self.screendisplay = "menu"
+    def collision_check(circlelist):
+        for circle in circlelist:
+            distance = 
         
 
 
