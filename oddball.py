@@ -6,46 +6,105 @@ screen_width, screen_height = 1280, 720
 real_width, real_height = 1333, 1055
 screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
-circlelist = []
 font = pygame.font.SysFont(None, 24)  
 running = True
 
 class Player:
-    def __init__(self, x, y, size=13, speed = 5, value = 3, strikecount = 0, divisible_by_5_streak = 0):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.size = size
-        self.speed = speed
-        self.value = value
-        self.strikecount = strikecount
-        self.divisible_by_5_streak = divisible_by_5_streak
+        self.size = 13
+        self.speed = 3
+        self.value = 3
+        self.strikecount = 0
+        self.divisible_by_5_streak = 0
 
     def move(self, target_x, target_y):
         dx = target_x - self.x
         dy = target_y - self.y
+        distance = math.hypot(dx, dy)
 
-        distance = (dx**2 + dy**2) ** 0.5
-
-        if distance > self.speed:
-            self.x += (dx / distance) * self.speed
-            self.y += (dy / distance) * self.speed
-        else:
-            self.x = target_x
-            self.y = target_y
-
+        if distance < 1:
+            return 
+        self.x += (dx / distance) * self.speed
+        self.y += (dy / distance) * self.speed
+        
         self.x = max(self.size, min(real_width - self.size, self.x))
         self.y = max(self.size, min(real_height - self.size, self.y))
 
-    def grow(self, surface, camera_x, camera_y):
+    def grow(self, amount):
+        self.value += amount
+        self.size = 10 + self.value * 0.3
+    def draw(self, surface, camera_x, camera_y):
+        screen_x = int(self.x - camera_x)
+        screen_y = int(self.y - camera_y)
+        pygame.draw.circle(surface, "green", (screen_x, screen_y), int(self.size))
+        text = font.render(str(self.value), True, "black")
+        surface.blit(text, text.get_rect(center=(screen_x, screen_y)))
+
+class Circle:
+    def __init__(self, player_value):
+        self.x = random.randint(0, real_width)
+        self.y = random.randint(0, real_height)
+        self.value = random.randint(1, player_value + 10)
+        self.size = 10 + math.sqrt(self.value) * 4
+        speed = 2
+
+        angle = random.random() * math.pi * 2
+        self.dx = math.cos(angle) * speed
+        self.dy = math.sin(angle) * speed
+        
+    def move(self):
+        self.x += self.dx
+        self.y += self.dy
+
+        if self.x < 0 or self.x > real_width:
+            self.dx *= -1
+        if self.y < 0 or self.y > real_height:
+            self.dy *= -1
+
+    def spawn(self, surface, camera_x, camera_y):
         screen_x = int(self.x - camera_x)
         screen_y = int(self.y - camera_y)
 
-        pygame.draw.circle(surface, "green", (screen_x, screen_y), self.size)
-        text = font.render(str(self.value), True, "black")
-        text_rect = text.get_rect(center=(screen_x, screen_y))
-        surface.blit(text, text_rect)
+        pygame.draw.circle(surface, "red", (screen_x, screen_y), int(self.size))
+        text = font.render(str(self.value), True, "white")
+        surface.blit(text, text.get_rect(center=(screen_x, screen_y)))
+                           
+    def is_prime(self):
+        if self.value <= 1:
+            return False
+        for i in range(2, int(math.sqrt(self.value)) + 1):
+            if self.value % i == 0:
+                return False
+        return True
+class Game:
+    def __init__(self, player, circlelist, strikecount, screendisplay, time, winscore, mapwidth, mapheight):
+        self.player = player
+        self.circlelist = circlelist
+        self.strikecount = strikecount
+        self.screendisplay = screendisplay
+        self.time = time
+        self.winscore = winscore
+        self.mapwidth = mapwidth
+        self.mapheight = mapheight
+    def start(self):
+        self.screendisplay = "menu"
+    def collision_check(circlelist):
+            if distance < player.size + circle.size:
+                if circle.value > player.value:
+                    running = Flase
+                else:
+                    player.grow(circle.value)
+                    if circle.is_prime():
+                        player.strikecount += 1
+                circlelist.remove(circle)
+                circlelist.append(Circle(player.value))
+
 
 player = Player(real_width // 2, real_height // 2)
+circlelist = [Circle(player.value) for _ in range(8)]
+running = True
 
 while running:
     for event in pygame.event.get():
@@ -62,86 +121,29 @@ while running:
     target_y = mouse_y + camera_y
 
     player.move(target_x, target_y)
+    for circle in circlelist:
+        circle.move()
+    for circle in circlelist[:]:
+        distance = math.hypot(player.x - circle.x, player.y - circle.y)
+        if distance < player.size + circle.size:
+            if circle.value > player.value:
+                running = False
+            else: 
+                player.grow(circle.value)
+                if circle.is_prime():
+                    player.strikecount += 1
 
+                circlelist.remove(circle)
+                circlelist.append(Circle(player.value))
     screen.fill("white")
-    pygame.draw.rect(screen, "black", (-camera_x, -camera_y, real_width, real_height), 10)
-
-    player.grow(screen, camera_x, camera_y)
-
+    player.draw(screen, camera_x, camera_y)
+    for circle in circlelist:
+        circle.spawn(screen, camera_x, camera_y)
+        
+    strike_text = font.render(f"Strike Count: {player.strikecount}/3", True, "black")
+    screen.blit(strike_text, (screen_width - strike_text.get_width() - 20, 20))
     pygame.display.flip()
     clock.tick(60)
-
-class Circle:
-    def __init__(self, position, value, size, speed):
-        self.position = position
-        self.value = value
-        self.size = size
-        self.speed = speed
-    def move(self, target_x, target_y):
-        dx = target_x - self.x
-        dy = target_y - self.y
-
-        distance = (dx**2 + dy**2) ** 0.5
-
-        if distance > self.speed:
-            self.x += (dx / distance) * self.speed
-            self.y += (dy / distance) * self.speed
-        else:
-            self.x = target_x
-            self.y = target_y
-
-        self.x = max(self.size, min(real_width - self.size, self.x))
-        self.y = max(self.size, min(real_height - self.size, self.y))
-    def spawn(self):
-        minval = player.value - 10
-        maxval = player.value + 15
-        if minval < 1:
-            minval = 1
-        val = random.randint(minval,maxval)
-        self.size = val
-        self.value = val
-        pygame.draw.circle(WIN,(0,0,0),self.position, self.size)
-    def is_prime(self):
-        if self.value <= 1:
-            return False
-        for i=2 to floor(sqrt(self.value)):
-            if self.value % i==0, 
-                return False
-        return True
-class Game:
-    def __init__(self, player, circlelist, strikecount, screendisplay, time, winscore, mapwidth, mapheight):
-        self.player = player
-        self.circlelist = circlelist
-        self.strikecount = strikecount
-        self.screendisplay = screendisplay
-        self.time = time
-        self.winscore = winscore
-        self.mapwidth = mapwidth
-        self.mapheight = mapheight
-    def start(self):
-        self.screendisplay = "menu"
-    def collision_check(circlelist):
-        for circle in circlelist:
-            distance = math.hypot(self.player.x - circle.x, self.player.y - circle.y)
-            #idk how to set distance
-            if distance <= self.player.size + circle.size:
-                if circle.value > player.value:
-                    game_lose()
-                else:
-                    self.player.grow(circle.value)
-                if circle.value % 5 == 0:
-                    player.divisible_by_5_streak += 1
-                    if player.divisible_by_5_streak == 3:
-                        player.bonus_score(5)
-                        player.divisible_by_5_streak = 0
-                else:
-                    player.divisible_by_5_streak = 0
-                if circle.is_prime(circle.value):
-                    player.strikecount += 1
-                    self.update_winscore()
-                circlelist.remove(circle)
-                circlelist.append(Circle(self.player.value))
-        
 
 
 
