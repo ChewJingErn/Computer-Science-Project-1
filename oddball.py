@@ -122,25 +122,25 @@ class Game:
         self.screendisplay = "menu"
     def collision_check(circlelist):
         for circle in circlelist:
-            distance = 
+            distance = math.hypot(self.player.x - circle.x, self.player.y - circle.y)
             #idk how to set distance
-            if distance <= 0:
+            if distance <= self.player.size + circle.size:
                 if circle.value > player.value:
                     game_lose()
                 else:
-                    player.grow(circle.value)
+                    self.player.grow(circle.value)
                 if circle.value % 5 == 0:
-                    player.divisible_by_5_streak = player.divisible_by_5_streak + 1
+                    player.divisible_by_5_streak += 1
                     if player.divisible_by_5_streak == 3:
                         player.bonus_score(5)
                         player.divisible_by_5_streak = 0
                 else:
                     player.divisible_by_5_streak = 0
                 if circle.is_prime(circle.value):
-                    player.strikecount = player.strikecount + 1
-                    update_winscore()
+                    player.strikecount += 1
+                    self.update_winscore()
                 circlelist.remove(circle)
-                #i dont know how to add new circle
+                circlelist.append(Circle(self.player.value))
         
 
 
