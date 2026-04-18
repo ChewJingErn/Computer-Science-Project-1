@@ -14,7 +14,7 @@ class Player:
         self.x = x
         self.y = y
         self.size = 13
-        self.speed = 3
+        self.speed = 5
         self.value = 3
         self.strikecount = 0
         self.divisible_by_5_streak = 0
