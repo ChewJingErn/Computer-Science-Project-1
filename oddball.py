@@ -160,7 +160,7 @@ while running:
                 circlelist.remove(circle)
                 circlelist.append(Circle(player.value))
 
-    if player.strikecount >= 3
+    if player.strikecount >= 3:
         running = False
     screen.fill("white")
     player.draw(screen, camera_x, camera_y)
