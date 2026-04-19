@@ -43,13 +43,16 @@ class Player:
         surface.blit(text, text.get_rect(center=(screen_x, screen_y)))
 
 class Circle:
-    def __init__(self, player_value):
+    def __init__(self, player_value=None, forced_value=None):
         self.x = random.randint(0, real_width)
         self.y = random.randint(0, real_height)
-        self.value = random.randint(1, player_value + 10)
+        if forced_value is not None:
+            self.value = forced_value
+        else:
+            self.value = random.randint(1, player_value + 10)
         self.size = 10 + math.sqrt(self.value) * 4
+        
         speed = 2
-
         angle = random.random() * math.pi * 2
         self.dx = math.cos(angle) * speed
         self.dy = math.sin(angle) * speed
@@ -78,6 +81,7 @@ class Circle:
             if self.value % i == 0:
                 return False
         return True
+        
 class Game:
     def __init__(self, player, circlelist, strikecount, screendisplay, time, winscore, mapwidth, mapheight):
         self.player = player
@@ -105,6 +109,26 @@ class Game:
 player = Player(real_width // 2, real_height // 2)
 circlelist = [Circle(player.value) for _ in range(8)]
 running = True
+
+def edible_circle():
+    for circle in circlelist:
+        if circle.value < player.value:
+            return 
+    new_circle = max(1, player.value - random.randint(1, 5))
+
+    while True:
+        is_prime = True
+        if new_circle <= 1:
+            is_prime = False
+        else:
+            for i in range(2, int(math.sqrt(new_circle)) + 1):
+                if new_circle % i == 0:
+                    is_prime = False
+                    break
+        if not is_prime:
+            break
+        new_circle = max(1, player.value - random.randint(1, 5))
+    circlelist.append(Circle(forced_value=new_circle))
 
 while running:
     for event in pygame.event.get():
@@ -135,6 +159,9 @@ while running:
 
                 circlelist.remove(circle)
                 circlelist.append(Circle(player.value))
+
+    if player.strikecount >= 3
+        running = False
     screen.fill("white")
     player.draw(screen, camera_x, camera_y)
     for circle in circlelist:
@@ -142,6 +169,7 @@ while running:
         
     strike_text = font.render(f"Strike Count: {player.strikecount}/3", True, "black")
     screen.blit(strike_text, (screen_width - strike_text.get_width() - 20, 20))
+    edible_circle()
     pygame.display.flip()
     clock.tick(60)
 
