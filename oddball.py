@@ -97,7 +97,7 @@ class Game:
     def collision_check(circlelist):
             if distance < player.size + circle.size:
                 if circle.value > player.value:
-                    running = Flase
+                    running = False
                 else:
                     player.grow(circle.value)
                     if circle.is_prime():
@@ -147,7 +147,7 @@ while running:
     player.move(target_x, target_y)
     for circle in circlelist:
         circle.move()
-    for circle in circlelist[:]:
+    for circle in circlelist[]:
         distance = math.hypot(player.x - circle.x, player.y - circle.y)
         if distance < player.size + circle.size:
             if circle.value > player.value:
