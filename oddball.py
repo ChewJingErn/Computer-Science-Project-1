@@ -1,5 +1,4 @@
 import math, pygame, random, time
-
 pygame.init()
 
 screen_width, screen_height = 1280, 720
@@ -7,7 +6,6 @@ real_width, real_height = 1333, 1055
 screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 24)  
-running = True
 
 class Player:
     def __init__(self, x, y):
@@ -18,6 +16,7 @@ class Player:
         self.value = 3
         self.strikecount = 0
         self.divisible_by_5_streak = 0
+        self.start_time = time.time()
 
     def move(self, target_x, target_y):
         dx = target_x - self.x
@@ -34,25 +33,25 @@ class Player:
 
     def grow(self, amount):
         self.value += amount
-        self.size = 10 + self.value * 0.3
+        self.size = 10 + self.value * 0.25
+        
     def draw(self, surface, camera_x, camera_y):
         screen_x = int(self.x - camera_x)
         screen_y = int(self.y - camera_y)
+        
         pygame.draw.circle(surface, "green", (screen_x, screen_y), int(self.size))
         text = font.render(str(self.value), True, "black")
         surface.blit(text, text.get_rect(center=(screen_x, screen_y)))
 
 class Circle:
-    def __init__(self, player_value=None, forced_value=None):
+    def __init__(self, player_value, forced_value=None):
         self.x = random.randint(0, real_width)
         self.y = random.randint(0, real_height)
-        if forced_value is not None:
-            self.value = forced_value
-        else:
-            self.value = random.randint(1, player_value + 10)
-        self.size = 10 + math.sqrt(self.value) * 4
-        
+        self.value = forced_value if forced_value is not None else random.randint(1, player_value + 10)
+        max_size = 60
+        self.size = min(max_size, 10 + math.sqrt(self.value) * 4)
         speed = 2
+        
         angle = random.random() * math.pi * 2
         self.dx = math.cos(angle) * speed
         self.dy = math.sin(angle) * speed
@@ -69,8 +68,9 @@ class Circle:
     def spawn(self, surface, camera_x, camera_y):
         screen_x = int(self.x - camera_x)
         screen_y = int(self.y - camera_y)
+        colour = "darkred" if self.is_prime() and self.value > 50 else "red"
 
-        pygame.draw.circle(surface, "red", (screen_x, screen_y), int(self.size))
+        pygame.draw.circle(surface, colour, (screen_x, screen_y), int(self.size))
         text = font.render(str(self.value), True, "white")
         surface.blit(text, text.get_rect(center=(screen_x, screen_y)))
                            
@@ -83,98 +83,206 @@ class Circle:
         return True
         
 class Game:
-    def __init__(self, player, circlelist, strikecount, screendisplay, time, winscore, mapwidth, mapheight):
-        self.player = player
-        self.circlelist = circlelist
-        self.strikecount = strikecount
-        self.screendisplay = screendisplay
-        self.time = time
-        self.winscore = winscore
-        self.mapwidth = mapwidth
-        self.mapheight = mapheight
+    def __init__(self):
+        self.player = None
+        self.circlelist = []
+        self.screendisplay = "menu"
+        self.time = 0
+        self.clicked = False
+        self.play_button = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
+
+    def start_game(self):
+        self.player = Player(real_width // 2, real_height // 2)
+        self.circlelist = []
+        edible_value = self.generate_edible_value()
+        self.circlelist.append(Circle(self.player.value, forced_value=edible_value))
+        for i in range(7):
+            self.circlelist.append(Circle(self.player.value))
+            
+        if not any(circle.value < self.player.value and not circle.is_prime() for circle in self.circlelist):
+            self.circlelist[0].value = max(1, self.player.value - 2)
+        self.screendisplay = "playing"
+
+    def game_win(self):
+        if self.player.value >= 1505:
+            self.screendisplay = "win"
+
+    def game_lose(self):
+        if self.player.strikecount >= 3:
+            self.screendisplay = "lost"
+        
+    def collision_check(self):
+        for circle in self.circlelist[:]:
+            distance = math.hypot(self.player.x - circle.x, self.player.y - circle.y)
+            
+            if distance < self.player.size + circle.size:
+                if circle.value > self.player.value:
+                    self.screendisplay = "lost"
+                    return
+
+                if circle.is_prime():
+                    self.player.strikecount += 1
+                self.player.grow(circle.value)
+                    
+                if circle.value % 5 == 0:
+                    self.player.divisible_by_5_streak += 1
+                else:
+                    self.player.divisible_by_5_streak = 0
+                self.circlelist.remove(circle)
+                if random.random() < 0.3:
+                    new_value = self.generate_edible_value()
+                    self.circlelist.append(Circle(self.player.value, forced_value=new_value))
+                else:
+                    self.circlelist.append(Circle(self.player.value))
+                break
+
+    def gameplay(self):
+        screen.fill("white")
+        camera_x = self.player.x - screen_width // 2
+        camera_y = self.player.y - screen_height // 2
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        self.player.move(mouse_x + camera_x, mouse_y + camera_y)
+
+        for circle in self.circlelist:
+            circle.move()
+        self.collision_check()
+        self.ensure_safe_circle()
+        self.game_win()
+        self.game_lose()
+
+        for circle in self.circlelist:
+            circle.spawn(screen, camera_x, camera_y)
+        self.player.draw(screen, camera_x, camera_y)
+        timer = int(time.time() - self.player.start_time)
+        timedisplay = font.render(f"Time: {timer}", True, "black")
+        strikedisplay = font.render(f"Strikes: {self.player.strikecount}/3", True, "black")
+        screen.blit(timedisplay, (screen_width - 150, 20))
+        screen.blit(strikedisplay, (screen_width - 150, 50))
+            
+    def menu_display(self):
+        screen.fill("white")
+                     
+        title_font = pygame.font.SysFont(None, 80)
+        title = title_font.render("ODDBALL", True, "black")
+        screen.blit(title, title.get_rect(center=(screen_width//2, 100)))
+        
+        rules = [
+            "1. Only eat smaller numbers to grow.",
+            "2. Eating a prime number will result in a strike.",
+            "3. Obtaining 3 strikes will result in a lose.",
+            "4. Eating a number that is a multiple of 5, 3 times in a row, will give you bonus growth!",
+            "5. Obtain a win score of up to 1505!",
+        ]
+        
+        for i, line in enumerate(rules):
+            text = font.render(line, True, (200, 200, 200))
+            screen.blit(text, text.get_rect(center=(screen_width//2, 260 + i*35)))
+            txt = font.render("PLAY", True, "black")
+            screen.blit(txt, txt.get_rect(center=self.play_button.center))
+
+        if self.clicked and self.play_button.collidepoint(pygame.mouse.get_pos()):
+            self.start_game()
+
+    def gameover_screen(self):
+        screen.fill("white")
+
+        title = pygame.font.SysFont(None, 70).render("YOU LOSE!", True, "red")
+        screen.blit(title, title.get_rect(center=(screen_width//2, 120)))
+        time_elapsed = int(time.time() - self.player.start_time)
+        timedisplay = font.render(f"Time: {time_elapsed}", True, "black")
+        screen.blit(timedisplay, (screen_width//2 - 50, 200))
+        
+        score_text = font.render(f"Score: {int(self.player.value)}", True, "white")
+        screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
+
+        rules = [
+            "Rules:",
+            "1. Only eat smaller numbers to grow.",
+            "2. Eating a prime number will result in a strike.",
+            "3. Obtaining 3 strikes will result in a lose.",
+            "4. Eating a number that is a multiple of 5, 3 times in a row, will give you bonus growth!",
+            "5. Obtain a win score of up to 1505!",
+        ]
+
+        for i, line in enumerate(rules):
+            text = font.render(line, True, "white")
+            screen.blit(text, text.get_rect(center=(screen_width//2, 260 + i * 30)))
+
+        retry = pygame.Rect(screen_width//2 - 110, 500, 100, 50)
+        menu = pygame.Rect(screen_width//2 + 10, 500, 100, 50)
+
+        pygame.draw.rect(screen, "green", retry)
+
+        retry_text = font.render("Retry", True, "white")
+
+        screen.blit(retry_text, retry_text.get_rect(center=retry.center))
+
+        if self.clicked:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+
+            if retry.collidepoint(mouse_x, mouse_y):
+                self.start_game()
+
+    def win_screen(self):
+        screen.fill("white")
+        text = pygame.font.SysFont(None, 60).render("YOU WON!", True, "green")
+        screen.blit(text, text.get_rect(center=(screen_width//2, 100)))
+        
+        retry = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
+        pygame.draw.rect(screen, "green", retry)
+        
+        text = font.render("Retry", True, "white")
+        screen.blit(text, text.get_rect(center=retry.center))
+        
+
+    def screen(self):
+        if self.screendisplay == "menu":
+            self.menu_display()
+        elif self.screendisplay == "playing":
+            self.gameplay()
+        elif self.screendisplay == "lost":
+            self.gameover_screen()
+        elif self.screendisplay == "win":
+            self.win_screen()
+    
     def start(self):
         self.screendisplay = "menu"
-    def collision_check(circlelist):
-            if distance < player.size + circle.size:
-                if circle.value > player.value:
-                    running = False
-                else:
-                    player.grow(circle.value)
-                    if circle.is_prime():
-                        player.strikecount += 1
-                circlelist.remove(circle)
-                circlelist.append(Circle(player.value))
 
+    def generate_edible_value(self):
+        while True:
+            value = max(1, self.player.value - random.randint(1, 5))
 
-player = Player(real_width // 2, real_height // 2)
-circlelist = [Circle(player.value) for _ in range(8)]
+            if value > 1:
+                prime = True
+                for i in range(2, int(math.sqrt(value)) + 1):
+                    if value % i == 0:
+                        prime = False
+                        break
+                if not prime:
+                    return value
+            else:
+                return value
+    def ensure_safe_circle(self):
+        for circle in self.circlelist:
+            if circle.value < self.player.value and not circle.is_prime():
+                return
+        safe_value = self.generate_edible_value()
+        self.circlelist.append(Circle(self.player.value, forced_value=safe_value))
+
+game = Game()
 running = True
 
-def edible_circle():
-    for circle in circlelist:
-        if circle.value < player.value:
-            return 
-    new_circle = max(1, player.value - random.randint(1, 5))
-
-    while True:
-        is_prime = True
-        if new_circle <= 1:
-            is_prime = False
-        else:
-            for i in range(2, int(math.sqrt(new_circle)) + 1):
-                if new_circle % i == 0:
-                    is_prime = False
-                    break
-        if not is_prime:
-            break
-        new_circle = max(1, player.value - random.randint(1, 5))
-    circlelist.append(Circle(forced_value=new_circle))
-
 while running:
+    game.clicked = False
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            game.clicked = True            
+            
+    game.screen()
 
-    camera_x = player.x - screen_width // 2
-    camera_y = player.y - screen_height // 2
-    camera_x = max(0, min(real_width - screen_width, camera_x))
-    camera_y = max(0, min(real_height - screen_height, camera_y))
-
-    mouse_x, mouse_y = pygame.mouse.get_pos()
-    target_x = mouse_x + camera_x
-    target_y = mouse_y + camera_y
-
-    player.move(target_x, target_y)
-    for circle in circlelist:
-        circle.move()
-    for circle in circlelist[]:
-        distance = math.hypot(player.x - circle.x, player.y - circle.y)
-        if distance < player.size + circle.size:
-            if circle.value > player.value:
-                running = False
-            else: 
-                player.grow(circle.value)
-                if circle.is_prime():
-                    player.strikecount += 1
-
-                circlelist.remove(circle)
-                circlelist.append(Circle(player.value))
-
-    if player.strikecount >= 3:
-        running = False
-    screen.fill("white")
-    player.draw(screen, camera_x, camera_y)
-    for circle in circlelist:
-        circle.spawn(screen, camera_x, camera_y)
-        
-    strike_text = font.render(f"Strike Count: {player.strikecount}/3", True, "black")
-    screen.blit(strike_text, (screen_width - strike_text.get_width() - 20, 20))
-    edible_circle()
     pygame.display.flip()
     clock.tick(60)
-
-
-
-
 
 pygame.quit()
