@@ -7,6 +7,28 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 24)  
 
+def get_primes(limit): #to display prime numbers on menu and gameover screen
+    primes = []
+    for n in range(2, limit + 1):
+        is_prime = True
+        for i in range(2, int(math.sqrt(n)) + 1):
+            if n % i == 0:
+                is_prime = False
+                break
+        if is_prime:
+            primes.append(n)
+    return primes
+prime_list = get_primes(150)
+
+def draw_prime_list(surface): #displaying prime numbers
+    title = font.render("List of prime numbers:", True, "black")
+    surface.blit(title, (20, 20))
+    y = 50
+    for p in prime_list:
+        text = font.render(str(p), True, "black")
+        surface.blit(text, (20, y))
+        y += 18
+
 class Player:
     def __init__(self, x, y):
         self.x = x
@@ -70,7 +92,7 @@ class Circle:
     def spawn(self, surface, camera_x, camera_y):
         screen_x = int(self.x - camera_x)
         screen_y = int(self.y - camera_y)
-        colour = "darkred" if self.is_prime() and self.value > 50 else "red"
+        colour = "darkred" if self.is_prime() and self.value > 150 else "red"
 
         pygame.draw.circle(surface, colour, (screen_x, screen_y), int(self.size))
         text = font.render(str(self.value), True, "white")
@@ -99,10 +121,10 @@ class Game:
         edible_value = self.generate_edible_value()
         self.circlelist.append(Circle(self.player.value, forced_value=edible_value))
         for i in range(7):
-            self.circlelist.append(Circle(self.player.value))
-            
-        if not any(circle.value < self.player.value and not circle.is_prime() for circle in self.circlelist):
-            self.circlelist[0].value = max(1, self.player.value - 2)
+            if random.random() < 0.25:
+                self.circlelist.append(Circle(self.player.value, forced_value=self.generate_edible_value()))
+            else:
+                self.circlelist.append(Circle(self.player.value))
         self.screendisplay = "playing"
 
     def game_win(self):
@@ -163,7 +185,7 @@ class Game:
             
     def menu_display(self):
         screen.fill("white")
-                     
+        draw_prime_list(screen)
         title_font = pygame.font.SysFont(None, 80)
         title = title_font.render("ODDBALL", True, "black")
         screen.blit(title, title.get_rect(center=(screen_width//2, 100)))
@@ -177,7 +199,7 @@ class Game:
         ]
         
         for i, line in enumerate(rules):
-            text = font.render(line, True, (200, 200, 200))
+            text = font.render(line, True, "black")
             screen.blit(text, text.get_rect(center=(screen_width//2, 260 + i*35)))
             txt = font.render("PLAY", True, "black")
             screen.blit(txt, txt.get_rect(center=self.play_button.center))
@@ -187,7 +209,7 @@ class Game:
 
     def gameover_screen(self):
         screen.fill("white")
-
+        draw_prime_list(screen)
         title = pygame.font.SysFont(None, 70).render("YOU LOSE!", True, "red")
         screen.blit(title, title.get_rect(center=(screen_width//2, 120)))
         time_elapsed = int(time.time() - self.player.start_time)
@@ -207,14 +229,11 @@ class Game:
         ]
 
         for i, line in enumerate(rules):
-            text = font.render(line, True, "white")
-            screen.blit(text, text.get_rect(center=(screen_width//2, 260 + i * 30)))
+            text = font.render(line, True, "black")
+            screen.blit(text, text.get_rect(center=(screen_width//2, 260 + i * 32)))
 
-        retry = pygame.Rect(screen_width//2 - 110, 500, 100, 50)
-        menu = pygame.Rect(screen_width//2 + 10, 500, 100, 50)
-
+        retry = retry = pygame.Rect(screen_width//2 - 50, 650, 100, 50)
         pygame.draw.rect(screen, "green", retry)
-
         retry_text = font.render("Retry", True, "white")
 
         screen.blit(retry_text, retry_text.get_rect(center=retry.center))
@@ -227,14 +246,26 @@ class Game:
 
     def win_screen(self):
         screen.fill("white")
-        text = pygame.font.SysFont(None, 60).render("YOU WON!", True, "green")
+        text = pygame.font.SysFont(None, 80).render("YOU WON!", True, "green")
         screen.blit(text, text.get_rect(center=(screen_width//2, 100)))
         
         retry = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
         pygame.draw.rect(screen, "green", retry)
+
+        time_elapsed = int(time.time() - self.player.start_time)
+        timedisplay = font.render(f"Time: {time_elapsed}", True, "black")
+        screen.blit(timedisplay, (screen_width//2 - 50, 200))
+        
+        score_text = font.render(f"Score: {int(self.player.value)}", True, "white")
+        screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
         
         text = font.render("Retry", True, "white")
         screen.blit(text, text.get_rect(center=retry.center))
+        if self.clicked:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            if retry.collidepoint(mouse_x, mouse_y):
+                self.start_game()
+                self.screendisplay = "playing"
         
 
     def screen(self):
