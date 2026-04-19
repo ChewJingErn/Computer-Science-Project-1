@@ -32,8 +32,10 @@ class Player:
         self.y = max(self.size, min(real_height - self.size, self.y))
 
     def grow(self, amount):
+        MAX_SIZE = 65
         self.value += amount
-        self.size = 10 + self.value * 0.25
+        new_size = 10 + self.value * 0.25
+        self.size = min(MAX_SIZE, new_size)
         
     def draw(self, surface, camera_x, camera_y):
         screen_x = int(self.x - camera_x)
