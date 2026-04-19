@@ -261,7 +261,7 @@ class Game:
         timedisplay = font.render(f"Time: {time_elapsed}", True, "black")
         screen.blit(timedisplay, (screen_width//2 - 50, 200))
         
-        score_text = font.render(f"Score: {int(self.player.value)} / {self.win_score}",True,"black")
+        score_text = font.render(f"Score: {int(self.win_score)}",True,"black")
         screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
         
         menu_button = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
