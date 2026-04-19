@@ -114,6 +114,7 @@ class Game:
         self.time = 0
         self.clicked = False
         self.play_button = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
+        self.win_score = 1505
 
     def start_game(self):
         self.player = Player(real_width // 2, real_height // 2)
@@ -128,7 +129,11 @@ class Game:
         self.screendisplay = "playing"
 
     def game_win(self):
-        if self.player.value >= 1505:
+        if self.player.strikecount >= 1:
+            self.win_score = 995
+        else:
+            self.win_score = 1505
+        if self.player.value >= self.win_score:
             self.screendisplay = "win"
 
     def game_lose(self):
@@ -249,23 +254,28 @@ class Game:
         text = pygame.font.SysFont(None, 80).render("YOU WON!", True, "green")
         screen.blit(text, text.get_rect(center=(screen_width//2, 100)))
         
-        retry = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
-        pygame.draw.rect(screen, "green", retry)
+        menu_button = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
+        pygame.draw.rect(screen, "blue", menu_button)
 
         time_elapsed = int(time.time() - self.player.start_time)
         timedisplay = font.render(f"Time: {time_elapsed}", True, "black")
         screen.blit(timedisplay, (screen_width//2 - 50, 200))
         
-        score_text = font.render(f"Score: {int(self.player.value)}", True, "white")
+        score_text = font.render(f"Score: {int(self.player.value)} / {self.win_score}",True,"black")
         screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
         
-        text = font.render("Retry", True, "white")
-        screen.blit(text, text.get_rect(center=retry.center))
+        menu_button = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
+        pygame.draw.rect(screen, "blue", menu_button)
+
+        text = font.render("Menu", True, "white")
+        screen.blit(text, text.get_rect(center=menu_button.center))
+        
+  
         if self.clicked:
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            if retry.collidepoint(mouse_x, mouse_y):
+            if menu_button.collidepoint(mouse_x, mouse_y):
                 self.start_game()
-                self.screendisplay = "playing"
+                self.screendisplay = "menu"
         
 
     def screen(self):
