@@ -38,7 +38,7 @@ class Player:
         self.value = 3
         self.strikecount = 0
         self.divisible_by_5_streak = 0
-        self.start_time = time.time()
+        self.start_time = pygame.time.get_ticks()
 
     def move(self, target_x, target_y):
         dx = target_x - self.x
@@ -134,11 +134,13 @@ class Game:
         else:
             self.win_score = 1505
         if self.player.value >= self.win_score:
+            self.final_time = (pygame.time.get_ticks() - self.player.start_time) / 1000
             self.screendisplay = "win"
 
     def game_lose(self):
         if self.player.strikecount >= 3:
             self.screendisplay = "lost"
+            self.final_time = (pygame.time.get_ticks() - self.player.start_time) / 1000
         
     def collision_check(self):
         for circle in self.circlelist[:]:
@@ -182,10 +184,12 @@ class Game:
         for circle in self.circlelist:
             circle.spawn(screen, camera_x, camera_y)
         self.player.draw(screen, camera_x, camera_y)
-        timer = int(time.time() - self.player.start_time)
-        timedisplay = font.render(f"Time: {timer}", True, "black")
+        elapsed_ms = pygame.time.get_ticks() - self.player.start_time
+        elapsed_sec = elapsed_ms / 1000
+
+        timedisplay = font.render(f"Time: {elapsed_sec:.2f} s", True, "black")
+        screen.blit(timedisplay, (screen_width - 180, 20))
         strikedisplay = font.render(f"Strikes: {self.player.strikecount}/3", True, "black")
-        screen.blit(timedisplay, (screen_width - 150, 20))
         screen.blit(strikedisplay, (screen_width - 150, 50))
             
     def menu_display(self):
@@ -217,10 +221,9 @@ class Game:
         draw_prime_list(screen)
         title = pygame.font.SysFont(None, 70).render("YOU LOSE!", True, "red")
         screen.blit(title, title.get_rect(center=(screen_width//2, 120)))
-        time_elapsed = int(time.time() - self.player.start_time)
-        timedisplay = font.render(f"Time: {time_elapsed}", True, "black")
-        screen.blit(timedisplay, (screen_width//2 - 50, 200))
-        
+        timedisplay = font.render(f"Time: {self.final_time:.2f} s", True, "black")
+        screen.blit(timedisplay, (screen_width//2 - 80, 200))
+            
         score_text = font.render(f"Score: {int(self.player.value)}", True, "white")
         screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
 
@@ -257,9 +260,8 @@ class Game:
         menu_button = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
         pygame.draw.rect(screen, "blue", menu_button)
 
-        time_elapsed = int(time.time() - self.player.start_time)
-        timedisplay = font.render(f"Time: {time_elapsed}", True, "black")
-        screen.blit(timedisplay, (screen_width//2 - 50, 200))
+        timedisplay = font.render(f"Time: {self.final_time:.2f} s", True, "black")
+    screen.blit(timedisplay, (screen_width//2 - 80, 200))
         
         score_text = font.render(f"Score: {int(self.win_score)}",True,"black")
         screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
