@@ -159,6 +159,10 @@ class Game:
                     self.player.divisible_by_5_streak += 1
                 else:
                     self.player.divisible_by_5_streak = 0
+                    if self.player.divisible_by_5_streak == 3:
+                        bonus = int(self.player.value * 0.05)
+                        self.player.grow(bonus)
+                        self.player.divisible_by_5_streak = 0
                 self.circlelist.remove(circle)
                 if random.random() < 0.3:
                     new_value = self.generate_edible_value()
