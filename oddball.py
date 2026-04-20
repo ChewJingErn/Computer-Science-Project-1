@@ -40,7 +40,7 @@ class Player:
         self.divisible_by_5_streak = 0
         self.start_time = pygame.time.get_ticks()
 
-    def move(self, target_x, target_y):
+    def move(self, target_x, target_y): #how player circle moves
         dx = target_x - self.x
         dy = target_y - self.y
         distance = math.hypot(dx, dy)
@@ -53,13 +53,13 @@ class Player:
         self.x = max(self.size, min(real_width - self.size, self.x))
         self.y = max(self.size, min(real_height - self.size, self.y))
 
-    def grow(self, amount):
-        MAX_SIZE = 65
+    def grow(self, amount): #how player circle grows
+        max_size = 65
         self.value += amount
         new_size = 10 + self.value * 0.25
-        self.size = min(MAX_SIZE, new_size)
+        self.size = min(max_size, new_size)
         
-    def draw(self, surface, camera_x, camera_y):
+    def draw(self, surface, camera_x, camera_y): #player circle 
         screen_x = int(self.x - camera_x)
         screen_y = int(self.y - camera_y)
         
@@ -71,7 +71,19 @@ class Circle:
     def __init__(self, player_value, forced_value=None):
         self.x = random.randint(0, real_width)
         self.y = random.randint(0, real_height)
-        self.value = forced_value if forced_value is not None else random.randint(1, player_value + 10)
+        
+        if player_value <= 250: #Setting a cap
+            min_value = max(1, int(player_value * 0.6))
+            max_value = min(250, player_value + 10)
+        else:
+            min_value = 100
+            max_value = 250
+
+        if forced_value is not None:
+            self.value = forced_value
+        else:
+            self.value = random.randint(min_value, max_value)
+
         max_size = 60
         self.size = min(max_size, 10 + math.sqrt(self.value) * 4)
         speed = 2
@@ -80,7 +92,7 @@ class Circle:
         self.dx = math.cos(angle) * speed
         self.dy = math.sin(angle) * speed
         
-    def move(self):
+    def move(self): #circle movement
         self.x += self.dx
         self.y += self.dy
 
@@ -115,9 +127,17 @@ class Game:
         self.clicked = False
         self.play_button = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
         self.win_score = 1505
+        self.rules = {
+            1: "1. Only eat smaller numbers to grow.",
+            2: "2. Eating a prime number will result in a strike.",
+            3: "3. Obtaining 3 strikes will result in a lose.",
+            4: "4. Eating a number that is a multiple of 5, 3 times in a row, will give you bonus growth!",
+            5: "5. Obtain a win score of up to 1505!",
+        }
 
     def start_game(self):
         self.player = Player(real_width // 2, real_height // 2)
+        self.player.start_time = pygame.time.get_ticks()
         self.circlelist = []
         edible_value = self.generate_edible_value()
         self.circlelist.append(Circle(self.player.value, forced_value=edible_value))
@@ -148,6 +168,7 @@ class Game:
             
             if distance < self.player.size + circle.size:
                 if circle.value > self.player.value:
+                    self.final_time = (pygame.time.get_ticks() - self.player.start_time) / 1000
                     self.screendisplay = "lost"
                     return
 
@@ -157,12 +178,13 @@ class Game:
                     
                 if circle.value % 5 == 0:
                     self.player.divisible_by_5_streak += 1
-                else:
-                    self.player.divisible_by_5_streak = 0
                     if self.player.divisible_by_5_streak == 3:
                         bonus = int(self.player.value * 0.05)
                         self.player.grow(bonus)
                         self.player.divisible_by_5_streak = 0
+                else:
+                    self.player.divisible_by_5_streak = 0
+                    
                 self.circlelist.remove(circle)
                 if random.random() < 0.3:
                     new_value = self.generate_edible_value()
@@ -202,20 +224,14 @@ class Game:
         title_font = pygame.font.SysFont(None, 80)
         title = title_font.render("ODDBALL", True, "black")
         screen.blit(title, title.get_rect(center=(screen_width//2, 100)))
-        
-        rules = [
-            "1. Only eat smaller numbers to grow.",
-            "2. Eating a prime number will result in a strike.",
-            "3. Obtaining 3 strikes will result in a lose.",
-            "4. Eating a number that is a multiple of 5, 3 times in a row, will give you bonus growth!",
-            "5. Obtain a win score of up to 1505!",
-        ]
-        
-        for i, line in enumerate(rules):
-            text = font.render(line, True, "black")
-            screen.blit(text, text.get_rect(center=(screen_width//2, 260 + i*35)))
-            txt = font.render("PLAY", True, "black")
-            screen.blit(txt, txt.get_rect(center=self.play_button.center))
+
+        for i in range(1, 6):
+            text = font.render(self.rules[i], True, "black")
+            screen.blit(text, text.get_rect(center=(screen_width//2, 260 + (i-1)*35)))
+
+        pygame.draw.rect(screen, "green", self.play_button) 
+        play_text = font.render("PLAY", True, "white") 
+        screen.blit(play_text, play_text.get_rect(center=self.play_button.center))
 
         if self.clicked and self.play_button.collidepoint(pygame.mouse.get_pos()):
             self.start_game()
@@ -226,23 +242,14 @@ class Game:
         title = pygame.font.SysFont(None, 70).render("YOU LOSE!", True, "red")
         screen.blit(title, title.get_rect(center=(screen_width//2, 120)))
         timedisplay = font.render(f"Time: {self.final_time:.2f} s", True, "black")
-        screen.blit(timedisplay, (screen_width//2 - 80, 200))
+        screen.blit(timedisplay, timedisplay.get_rect(center=(screen_width//2, 200)))
             
-        score_text = font.render(f"Score: {int(self.player.value)}", True, "white")
+        score_text = font.render(f"Score: {int(self.player.value)}", True, "black")
         screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
 
-        rules = [
-            "Rules:",
-            "1. Only eat smaller numbers to grow.",
-            "2. Eating a prime number will result in a strike.",
-            "3. Obtaining 3 strikes will result in a lose.",
-            "4. Eating a number that is a multiple of 5, 3 times in a row, will give you bonus growth!",
-            "5. Obtain a win score of up to 1505!",
-        ]
-
-        for i, line in enumerate(rules):
-            text = font.render(line, True, "black")
-            screen.blit(text, text.get_rect(center=(screen_width//2, 260 + i * 32)))
+        for i in range(1, 6):
+            text = font.render(self.rules[i], True, "black")
+            screen.blit(text, text.get_rect(center=(screen_width//2, 260 + (i-1)*35)))
 
         retry = retry = pygame.Rect(screen_width//2 - 50, 650, 100, 50)
         pygame.draw.rect(screen, "green", retry)
@@ -265,7 +272,7 @@ class Game:
         pygame.draw.rect(screen, "blue", menu_button)
 
         timedisplay = font.render(f"Time: {self.final_time:.2f} s", True, "black")
-        screen.blit(timedisplay, (screen_width//2 - 80, 200))
+        screen.blit(timedisplay, timedisplay.get_rect(center=(screen_width//2, 200)))
         
         score_text = font.render(f"Score: {int(self.win_score)}",True,"black")
         screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
@@ -275,14 +282,16 @@ class Game:
 
         text = font.render("Menu", True, "white")
         screen.blit(text, text.get_rect(center=menu_button.center))
-        
+
+        if self.win_score == 995:
+            hint_score = font.render("Try getting 0 strikes next round!", True, "black")
+            screen.blit(hint_score, hint_score.get_rect(center=(screen_width//2, 260)))
   
         if self.clicked:
             mouse_x, mouse_y = pygame.mouse.get_pos()
             if menu_button.collidepoint(mouse_x, mouse_y):
                 self.start_game()
                 self.screendisplay = "menu"
-        
 
     def screen(self):
         if self.screendisplay == "menu":
@@ -300,6 +309,10 @@ class Game:
     def generate_edible_value(self):
         while True:
             value = max(1, self.player.value - random.randint(1, 5))
+            value = min(250, value)
+
+            if self.player.value > 250:
+                value = max(100, value)
 
             if value > 1:
                 prime = True
