@@ -1,2 +1,1 @@
-# Computer-Science-Project-1
-Computer Science Project 1
+Ran using pygame-ce 2.5.7 (SDL 2.32.10, Python 3.14.3)
