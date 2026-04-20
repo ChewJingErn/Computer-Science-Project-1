@@ -72,12 +72,12 @@ class Circle:
         self.x = random.randint(0, real_width)
         self.y = random.randint(0, real_height)
         
-        if player_value <= 250: #Setting a cap
+        if player_value <= 200: #Setting a cap
             min_value = max(1, int(player_value * 0.6))
-            max_value = min(250, player_value + 10)
+            max_value = min(200, player_value + 10)
         else:
             min_value = 100
-            max_value = 250
+            max_value = 200
 
         if forced_value is not None:
             self.value = forced_value
@@ -247,6 +247,9 @@ class Game:
         score_text = font.render(f"Score: {int(self.player.value)}", True, "black")
         screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
 
+        strike_text = font.render(f"Strikes: {self.player.strikecount}/3", True, "red")
+        screen.blit(strike_text, strike_text.get_rect(center=(screen_width//2, 220)))
+
         for i in range(1, 6):
             text = font.render(self.rules[i], True, "black")
             screen.blit(text, text.get_rect(center=(screen_width//2, 260 + (i-1)*35)))
@@ -276,6 +279,9 @@ class Game:
         
         score_text = font.render(f"Score: {int(self.win_score)}",True,"black")
         screen.blit(score_text, score_text.get_rect(center=(screen_width//2, 180)))
+
+        strike_text = font.render(f"Strikes: {self.player.strikecount}/3", True, "orange" if self.player.strikecount > 0 else "green")
+        screen.blit(strike_text, strike_text.get_rect(center=(screen_width//2, 220)))
         
         menu_button = pygame.Rect(screen_width//2 - 100, 500, 200, 60)
         pygame.draw.rect(screen, "blue", menu_button)
