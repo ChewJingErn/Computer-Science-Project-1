@@ -315,9 +315,9 @@ class Game:
     def generate_edible_value(self):
         while True:
             value = max(1, self.player.value - random.randint(1, 5))
-            value = min(250, value)
+            value = min(200, value)
 
-            if self.player.value > 250:
+            if self.player.value > 200:
                 value = max(100, value)
 
             if value > 1:
